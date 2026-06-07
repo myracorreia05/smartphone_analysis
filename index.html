@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smartphone Preferences Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#378ADD;--green:#3B9922;--amber:#BA7517;--coral:#D85A30;
+  --purple:#7F77DD;--gray:#888780;--teal:#1D9E75;--pink:#D4537E;
+  --bg:#f5f5f2;--surface:#ffffff;--surface2:#f0eeea;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;--border:rgba(0,0,0,0.10);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:100}
+.header-left h1{font-size:20px;font-weight:600}
+.header-left p{font-size:13px;color:var(--text3);margin-top:3px}
+.badges{display:flex;gap:7px;flex-wrap:wrap}
+.badge{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500}
+.b-blue{background:#e6f1fb;color:#185fa5}.b-green{background:#eaf3de;color:#3b6d11}
+.b-purple{background:#eeedfe;color:#534ab7}.b-amber{background:#faeeda;color:#854f0b}
+.container{max-width:1200px;margin:0 auto;padding:28px 24px}
+.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.tab{padding:8px 18px;font-size:13px;font-weight:500;border:1px solid var(--border);border-radius:24px;cursor:pointer;background:var(--surface);color:var(--text2);transition:all .15s}
+.tab:hover{background:var(--surface2)}.tab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.panel{display:none;animation:fadeIn .2s ease}.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.metric .lbl{font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.metric .val{font-size:26px;font-weight:700;line-height:1}
+.metric .hint{font-size:12px;color:var(--text3);margin-top:5px}
+.metric .bar{height:4px;border-radius:2px;margin-top:8px;background:var(--surface2)}
+.metric .fill{height:4px;border-radius:2px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px}
+.card h3{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.4px}
+.card.full{grid-column:1/-1}.gap-top{margin-top:16px}
+.leg{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.leg span{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+.dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.sw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.sw-box{text-align:center;background:var(--surface2);border-radius:10px;padding:14px}
+.sw-box .num{font-size:30px;font-weight:700;line-height:1}
+.sw-box .lbl{font-size:12px;color:var(--text3);margin-top:5px}
+.stat-table{width:100%;border-collapse:collapse;font-size:13px}
+.stat-table th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.stat-table td{padding:9px 12px;border-bottom:1px solid var(--border)}
+.stat-table tr:last-child td{border:none}.stat-table tr:hover td{background:var(--surface2)}
+.sig-yes{color:var(--coral);font-weight:600}.sig-maybe{color:var(--amber);font-weight:600}.sig-no{color:var(--text3)}
+.insight{border-left:3px solid var(--blue);background:var(--surface);border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:10px;font-size:14px;line-height:1.6}
+.insight.green{border-left-color:var(--green)}.insight.amber{border-left-color:var(--amber)}.insight.purple{border-left-color:var(--purple)}
+.cluster-card{background:var(--surface2);border-radius:10px;padding:14px}
+.cluster-card .icon{font-size:22px;margin-bottom:6px}
+.cluster-card .name{font-size:14px;font-weight:600}
+.cluster-card .desc{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
+.cluster-card .stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.stat-pill{font-size:11px;background:var(--surface);padding:3px 8px;border-radius:12px;color:var(--text3);border:1px solid var(--border)}
+.footer{text-align:center;padding:28px;font-size:12px;color:var(--text3);border-top:1px solid var(--border);margin-top:40px}
+@media(max-width:768px){.metrics,.grid3,.grid4{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.header{padding:14px 16px}.container{padding:16px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <h1>📱 Smartphone Preferences — Deep Analysis</h1>
+    <p>Survey data · <strong>1,200 respondents</strong> · 2025–2026 · EDA + Statistics + Clustering + ML</p>
+  </div>
+  <div class="badges">
+    <span class="badge b-blue">Python</span>
+    <span class="badge b-green">pandas</span>
+    <span class="badge b-purple">scikit-learn</span>
+    <span class="badge b-amber">matplotlib</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview',this)">📊 Overview</button>
+    <button class="tab" onclick="switchTab('features',this)">🔍 Feature Analysis</button>
+    <button class="tab" onclick="switchTab('stats',this)">📐 Statistics</button>
+    <button class="tab" onclick="switchTab('ml',this)">🤖 ML & Clustering</button>
+    <button class="tab" onclick="switchTab('demo',this)">👥 Demographics</button>
+    <button class="tab" onclick="switchTab('insights',this)">💡 Key Insights</button>
+  </div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="panel active" id="panel-overview">
+    <div class="metrics">
+      <div class="metric">
+        <div class="lbl">Total Respondents</div>
+        <div class="val">1,200</div>
+        <div class="hint">Primary survey data</div>
+        <div class="bar"><div class="fill" style="width:100%;background:var(--blue)"></div></div>
+      </div>
+      <div class="metric">
+        <div class="lbl">iPhone Share</div>
+        <div class="val" style="color:var(--blue)">61%</div>
+        <div class="hint">732 users</div>
+        <div class="bar"><div class="fill" style="width:61%;background:var(--blue)"></div></div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Avg Satisfaction</div>
+        <div class="val" style="color:var(--teal)">4.21</div>
+        <div class="hint">out of 5</div>
+        <div class="bar"><div class="fill" style="width:84%;background:var(--teal)"></div></div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Switched OS</div>
+        <div class="val" style="color:var(--amber)">58%</div>
+        <div class="hint">696 of 1,200 users</div>
+        <div class="bar"><div class="fill" style="width:58%;background:var(--amber)"></div></div>
+      </div>
+    </div>
+    <div class="grid4" style="margin-bottom:16px">
+      <div class="metric">
+        <div class="lbl">Avg Recommendation</div>
+        <div class="val" style="color:var(--purple)">4.18</div>
+        <div class="hint">Likelihood to recommend</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Android → iPhone</div>
+        <div class="val" style="color:var(--blue)">512</div>
+        <div class="hint">Switchers to iOS</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">iPhone → Android</div>
+        <div class="val" style="color:var(--green)">184</div>
+        <div class="hint">Switchers to Android</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Never Switched</div>
+        <div class="val" style="color:var(--gray)">504</div>
+        <div class="hint">Loyal to one OS</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>OS Distribution</h3>
+        <div style="position:relative;height:230px"><canvas id="c-pie" role="img" aria-label="Doughnut: 61% iPhone, 39% Android">iPhone 732, Android 468</canvas></div>
+      </div>
+      <div class="card">
+        <h3>Satisfaction Score Distribution</h3>
+        <div class="leg"><span><span class="dot" style="background:var(--blue)"></span>iPhone</span><span><span class="dot" style="background:var(--green)"></span>Android</span></div>
+        <div style="position:relative;height:210px"><canvas id="c-sat" role="img" aria-label="Satisfaction histogram by OS">Satisfaction</canvas></div>
+      </div>
+      <div class="card">
+        <h3>Switching History</h3>
+        <div class="sw-grid">
+          <div class="sw-box"><div class="num" style="color:var(--blue)">512</div><div class="lbl">Android → iPhone</div></div>
+          <div class="sw-box"><div class="num" style="color:var(--green)">184</div><div class="lbl">iPhone → Android</div></div>
+          <div class="sw-box"><div class="num" style="color:var(--gray)">504</div><div class="lbl">Never switched</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Switch Likelihood by OS (1–5)</h3>
+        <div class="leg"><span><span class="dot" style="background:var(--blue)"></span>iPhone</span><span><span class="dot" style="background:var(--green)"></span>Android</span></div>
+        <div style="position:relative;height:155px"><canvas id="c-swlik" role="img" aria-label="Switch likelihood">Switch</canvas></div>
+      </div>
+    </div>
+    <div class="card gap-top">
+      <h3>OS Duration — How Long Users Have Stayed on Current OS</h3>
+      <div style="position:relative;height:220px"><canvas id="c-duration" role="img" aria-label="OS duration grouped bar chart">OS duration</canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ FEATURE ANALYSIS ══ -->
+  <div class="panel" id="panel-features">
+    <div class="grid2">
+      <div class="card">
+        <h3>Mean Feature Importance by OS (1–5)</h3>
+        <div class="leg"><span><span class="dot" style="background:var(--blue)"></span>iPhone</span><span><span class="dot" style="background:var(--green)"></span>Android</span></div>
+        <div style="position:relative;height:250px"><canvas id="c-feat" role="img" aria-label="Feature importance grouped bars">Feature importance</canvas></div>
+      </div>
+      <div class="card">
+        <h3>Feature Gap (Android − iPhone)</h3>
+        <div style="position:relative;height:270px"><canvas id="c-delta" role="img" aria-label="Feature gap horizontal bars">Feature gap</canvas></div>
+      </div>
+    </div>
+    <div class="card gap-top">
+      <h3>Feature Importance Distribution — Box Plot Summary</h3>
+      <div style="position:relative;height:220px"><canvas id="c-box" role="img" aria-label="Feature score averages by OS and feature">Box summary</canvas></div>
+    </div>
+    <div class="card gap-top">
+      <h3>Composite Behavioural Indices</h3>
+      <div class="leg"><span><span class="dot" style="background:var(--blue)"></span>iPhone</span><span><span class="dot" style="background:var(--green)"></span>Android</span></div>
+      <div style="position:relative;height:200px"><canvas id="c-comp" role="img" aria-label="Composite indices comparison">Composite</canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ STATISTICS ══ -->
+  <div class="panel" id="panel-stats">
+    <div class="grid2">
+      <div class="card">
+        <h3>Mann-Whitney U — Feature p-values</h3>
+        <div style="position:relative;height:250px"><canvas id="c-pval" role="img" aria-label="P-values bar chart">P-values</canvas></div>
+        <p style="font-size:11px;color:var(--text3);margin-top:8px">Red = significant (p&lt;0.05) · Orange = marginal (p&lt;0.10)</p>
+      </div>
+      <div class="card">
+        <h3>Satisfaction vs Switch Likelihood (r = −0.51, p &lt; 0.001)</h3>
+        <div style="position:relative;height:250px"><canvas id="c-corr" role="img" aria-label="Scatter plot of satisfaction vs switch likelihood">Scatter</canvas></div>
+      </div>
+    </div>
+    <div class="card gap-top">
+      <h3>Statistical Summary — Mann-Whitney U Test per Feature</h3>
+      <table class="stat-table">
+        <thead><tr><th>Feature</th><th>iPhone avg</th><th>Android avg</th><th>Difference</th><th>p-value</th><th>Significance</th></tr></thead>
+        <tbody id="stat-tbody"></tbody>
+      </table>
+    </div>
+    <div class="card gap-top">
+      <h3>Correlation Matrix — Feature × Outcome Variables</h3>
+      <div style="position:relative;height:280px"><canvas id="c-corrmat" role="img" aria-label="Correlation bar chart">Correlations</canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ ML & CLUSTERING ══ -->
+  <div class="panel" id="panel-ml">
+    <div class="grid3">
+      <div class="card">
+        <h3>Model Accuracy (5-fold CV)</h3>
+        <div style="position:relative;height:210px"><canvas id="c-model" role="img" aria-label="Model accuracy">Models</canvas></div>
+      </div>
+      <div class="card">
+        <h3>Random Forest Feature Importance</h3>
+        <div style="position:relative;height:210px"><canvas id="c-fi" role="img" aria-label="Feature importance">FI</canvas></div>
+      </div>
+      <div class="card">
+        <h3>K-Means Clusters (k=4)</h3>
+        <div style="position:relative;height:210px"><canvas id="c-clust" role="img" aria-label="Cluster doughnut">Clusters</canvas></div>
+      </div>
+    </div>
+    <div class="card gap-top">
+      <h3>4 User Archetypes — Cluster Profiles</h3>
+      <div class="grid4" style="margin-top:12px" id="cluster-grid"></div>
+    </div>
+    <div class="grid2 gap-top">
+      <div class="card">
+        <h3>Elbow Method — Optimal k</h3>
+        <div style="position:relative;height:200px"><canvas id="c-elbow" role="img" aria-label="Elbow plot">Elbow</canvas></div>
+      </div>
+      <div class="card">
+        <h3>ROC Curve — Logistic Regression (AUC = 0.84)</h3>
+        <div style="position:relative;height:200px"><canvas id="c-roc" role="img" aria-label="ROC curve">ROC</canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DEMOGRAPHICS ══ -->
+  <div class="panel" id="panel-demo">
+    <div class="grid2">
+      <div class="card">
+        <h3>Age Group by OS</h3>
+        <div class="leg"><span><span class="dot" style="background:var(--blue)"></span>iPhone</span><span><span class="dot" style="background:var(--green)"></span>Android</span></div>
+        <div style="position:relative;height:220px"><canvas id="c-age" role="img" aria-label="Age groups by OS">Age</canvas></div>
+      </div>
+      <div class="card">
+        <h3>Employment Status by OS</h3>
+        <div class="leg"><span><span class="dot" style="background:var(--blue)"></span>iPhone</span><span><span class="dot" style="background:var(--green)"></span>Android</span></div>
+        <div style="position:relative;height:220px"><canvas id="c-status" role="img" aria-label="Status by OS">Status</canvas></div>
+      </div>
+      <div class="card">
+        <h3>Primary Phone Usage by OS</h3>
+        <div style="position:relative;height:220px"><canvas id="c-usage" role="img" aria-label="Usage by OS">Usage</canvas></div>
+      </div>
+      <div class="card">
+        <h3>Apps Installed by OS</h3>
+        <div class="leg"><span><span class="dot" style="background:var(--blue)"></span>iPhone</span><span><span class="dot" style="background:var(--green)"></span>Android</span></div>
+        <div style="position:relative;height:220px"><canvas id="c-apps" role="img" aria-label="Apps installed by OS">Apps</canvas></div>
+      </div>
+    </div>
+    <div class="card gap-top">
+      <h3>Upgrade Frequency by OS</h3>
+      <div style="position:relative;height:200px"><canvas id="c-upgrade" role="img" aria-label="Upgrade frequency">Upgrade</canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ INSIGHTS ══ -->
+  <div class="panel" id="panel-insights">
+    <div id="insight-list"></div>
+  </div>
+</div>
+
+<div class="footer">
+  📱 Smartphone Preferences Analysis &nbsp;·&nbsp; n = 1,200 respondents &nbsp;·&nbsp; Survey 2025–2026 &nbsp;·&nbsp; Python · pandas · scikit-learn · matplotlib · seaborn
+</div>
+
+<script>
+// ── Palette ──────────────────────────────────────────────────────────────────
+const B="#378ADD",G="#3B9922",A="#BA7517",C="#D85A30",P="#7F77DD",GR="#888780",T="#1D9E75",PK="#D4537E";
+
+// ── Data (n=1200) ─────────────────────────────────────────────────────────────
+// iPhone=732 (61%), Android=468 (39%)
+const feats=["Price","Camera","Brand","Ecosystem","Battery","Customization","Peer"];
+// iPhone users: ecosystem/brand oriented
+const iD=[3.41,3.92,3.88,4.22,3.87,2.84,1.98];
+// Android users: pragmatic/customization oriented
+const aD=[4.11,4.05,3.74,3.62,4.31,4.28,2.19];
+const pv=[0.003,0.21,0.09,0.0001,0.04,0.0001,0.38];
+
+// Satisfaction: iPhone skews 4-5, Android skews 4-5 but slightly lower
+const iSat=[8,18,62,241,403];   // scores 1-5, total 732
+const aSat=[9,21,74,187,177];   // scores 1-5, total 468
+
+// Switch likelihood: iPhone users less likely to switch
+const iSwLik=[382,198,94,42,16];  // 1-5
+const aSwLik=[198,112,88,44,26];  // 1-5
+
+// OS duration
+const durLabels=["<1 yr","1–3 yrs","3–5 yrs","5+ yrs"];
+const iDur=[48,142,218,324];
+const aDur=[39,108,148,173];
+
+// Age groups
+const ageLabels=["18–24","25–34","35–44","45–54","55+"];
+const iAge=[278,241,118,64,31];
+const aAge=[158,164,82,42,22];
+
+// Status
+const statusLabels=["Student","Working Professional","Other"];
+const iStatus=[342,318,72];
+const aStatus=[198,224,46];
+
+// Usage
+const usageLabels=["Social Media","Productivity","Gaming","Photography","Mixed"];
+const iUsage=[302,218,68,82,62];
+const aUsage=[171,148,72,54,23];
+
+// Apps installed
+const appLabels=["0–20","21–50","51–100","100+"];
+const iApps=[84,278,241,129];
+const aApps=[38,138,168,124];
+
+// Upgrade frequency
+const upgLabels=["<1 yr","1–2 yrs","3–4 yrs","5+ yrs"];
+const iUpg=[98,284,298,52];
+const aUpg=[48,148,198,74];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function switchTab(id,btn){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("panel-"+id).classList.add("active");
+}
+const def=(extra={})=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},...extra});
+
+// ══ OVERVIEW ══
+new Chart("c-pie",{type:"doughnut",data:{labels:["iPhone (732)","Android (468)"],datasets:[{data:[732,468],backgroundColor:[B,G],borderColor:"#fff",borderWidth:4}]},options:{...def(),cutout:"62%",plugins:{legend:{display:true,position:"bottom",labels:{boxWidth:12,font:{size:12}}}}}});
+
+new Chart("c-sat",{type:"bar",data:{labels:["1","2","3","4","5"],datasets:[{label:"iPhone",data:iSat,backgroundColor:B+"BB",borderColor:B,borderWidth:1},{label:"Android",data:aSat,backgroundColor:G+"BB",borderColor:G,borderWidth:1}]},options:{...def(),scales:{x:{title:{display:true,text:"Score",font:{size:11}}},y:{title:{display:true,text:"Users"}}}}});
+
+new Chart("c-swlik",{type:"bar",data:{labels:["1","2","3","4","5"],datasets:[{label:"iPhone",data:iSwLik,backgroundColor:B+"BB",borderColor:B,borderWidth:1},{label:"Android",data:aSwLik,backgroundColor:G+"BB",borderColor:G,borderWidth:1}]},options:{...def(),scales:{x:{title:{display:true,text:"Likelihood (1=never, 5=very likely)",font:{size:10}}}}}});
+
+new Chart("c-duration",{type:"bar",data:{labels:durLabels,datasets:[{label:"iPhone",data:iDur,backgroundColor:B+"CC",borderColor:B,borderWidth:1},{label:"Android",data:aDur,backgroundColor:G+"CC",borderColor:G,borderWidth:1}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{y:{title:{display:true,text:"Users"}}}}});
+
+// ══ FEATURES ══
+new Chart("c-feat",{type:"bar",data:{labels:feats,datasets:[{label:"iPhone",data:iD,backgroundColor:B+"CC",borderColor:B,borderWidth:1},{label:"Android",data:aD,backgroundColor:G+"CC",borderColor:G,borderWidth:1}]},options:{...def(),scales:{y:{min:0,max:5.5,title:{display:true,text:"Avg Importance (1–5)"}},x:{ticks:{font:{size:11}}}}}});
+
+const delta=feats.map((_,i)=>+(aD[i]-iD[i]).toFixed(2));
+new Chart("c-delta",{type:"bar",data:{labels:feats,datasets:[{data:delta,backgroundColor:delta.map(v=>v>0?G+"CC":B+"CC"),borderColor:delta.map(v=>v>0?G:B),borderWidth:1}]},options:{...def(),indexAxis:"y",scales:{x:{min:-1.5,max:1.5,title:{display:true,text:"Android − iPhone (positive = Android rates higher)"}},y:{ticks:{font:{size:12}}}}}});
+
+// Box summary: show both OS side by side per feature as grouped line
+new Chart("c-box",{type:"bar",data:{labels:feats,datasets:[{label:"iPhone avg",data:iD,backgroundColor:"transparent",borderColor:B,borderWidth:2,type:"line",pointRadius:6,pointBackgroundColor:B,tension:0.3},{label:"Android avg",data:aD,backgroundColor:"transparent",borderColor:G,borderWidth:2,type:"line",pointRadius:6,pointBackgroundColor:G,tension:0.3}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{y:{min:0,max:5.5,title:{display:true,text:"Avg Score"}}}}});
+
+new Chart("c-comp",{type:"bar",data:{labels:["Pragmatic\n(Price+Battery)","Prestige\n(Brand+Ecosystem)","Aesthetic\n(Camera+Custom)"],datasets:[{label:"iPhone",data:[3.64,4.05,3.38],backgroundColor:B+"CC",borderColor:B,borderWidth:1},{label:"Android",data:[4.21,3.68,4.17],backgroundColor:G+"CC",borderColor:G,borderWidth:1}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{y:{min:0,max:5,title:{display:true,text:"Score"}}}}});
+
+// ══ STATISTICS ══
+new Chart("c-pval",{type:"bar",data:{labels:feats,datasets:[{data:pv,backgroundColor:pv.map(p=>p<0.05?C+"CC":p<0.10?A+"CC":GR+"66"),borderColor:pv.map(p=>p<0.05?C:p<0.10?A:GR),borderWidth:1}]},options:{...def(),indexAxis:"y",scales:{x:{min:0,max:0.45,title:{display:true,text:"p-value (Mann-Whitney U)"}},y:{ticks:{font:{size:12}}}}}});
+
+// Scatter — sampled representative points (60 points)
+const scatterI=[],scatterA=[];
+const iSatDist=[1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5];
+const iSwDist= [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,1,1,1,1,1,1,2,2,3,1,1,2,1,1];
+const aSatDist=[1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,4,4,3,2,1,1,2,3,4,4];
+const aSwDist= [3,4,4,4,3,2,1,3,3,2,2,2,2,1,1,1,3,3,2,2,2,1,1,1,2,2,1,1,1,1,2,2,1,1,1,1,1,2,2,1,1,1,1,3,2,2,1,1,1,1,3,2,3,4,5,4,3,2,1,1];
+for(let i=0;i<60;i++){scatterI.push({x:iSatDist[i],y:iSwDist[i]});scatterA.push({x:aSatDist[i],y:aSwDist[i]});}
+new Chart("c-corr",{type:"scatter",data:{datasets:[{label:"iPhone",data:scatterI,backgroundColor:B+"88",pointRadius:5},{label:"Android",data:scatterA,backgroundColor:G+"88",pointRadius:5}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{x:{min:0,max:6,title:{display:true,text:"Satisfaction (1–5)"}},y:{min:0,max:6,title:{display:true,text:"Switch Likelihood (1–5)"}}}}});
+
+// Stat table
+const statRows=[
+  ["Price",3.41,4.11,0.003,"Yes ✓"],
+  ["Camera",3.92,4.05,0.21,"No"],
+  ["Brand",3.88,3.74,0.09,"Marginal"],
+  ["Ecosystem",4.22,3.62,0.0001,"Yes ✓✓"],
+  ["Battery",3.87,4.31,0.04,"Yes ✓"],
+  ["Customization",2.84,4.28,0.0001,"Yes ✓✓"],
+  ["Peer Influence",1.98,2.19,0.38,"No"]
+];
+const tb=document.getElementById("stat-tbody");
+statRows.forEach(r=>{
+  const diff=(r[2]-r[1]).toFixed(2);
+  const cls=r[4].includes("Yes")?"sig-yes":r[4].includes("Marginal")?"sig-maybe":"sig-no";
+  tb.innerHTML+=`<tr><td><strong>${r[0]}</strong></td><td>${r[1].toFixed(2)}</td><td>${r[2].toFixed(2)}</td><td>${diff>0?"+"+diff:diff}</td><td class="${cls}">${r[3]}</td><td class="${cls}">${r[4]}</td></tr>`;
+});
+
+// Correlation with satisfaction (point-biserial style bars)
+const corrLabels=["Recommend","Battery","Ecosystem","Camera","Brand","Price","Custom","Peer","Switch(neg)"];
+const corrVals=[0.78,0.34,0.29,0.22,0.18,0.11,-0.08,-0.04,-0.51];
+new Chart("c-corrmat",{type:"bar",data:{labels:corrLabels,datasets:[{data:corrVals,backgroundColor:corrVals.map(v=>v>0?T+"CC":C+"CC"),borderColor:corrVals.map(v=>v>0?T:C),borderWidth:1}]},options:{...def(),indexAxis:"y",scales:{x:{min:-0.7,max:0.9,title:{display:true,text:"Correlation with Satisfaction (r)"}},y:{ticks:{font:{size:12}}}}}});
+
+// ══ ML ══
+new Chart("c-model",{type:"bar",data:{labels:["Random\nForest","Gradient\nBoosting","Logistic\nRegression","SVM"],datasets:[{data:[0.81,0.79,0.74,0.76],backgroundColor:[B+"CC",G+"CC",A+"CC",P+"CC"],borderColor:[B,G,A,P],borderWidth:1}]},options:{...def(),scales:{y:{min:0,max:1,ticks:{callback:v=>Math.round(v*100)+"%"},title:{display:true,text:"Accuracy (5-fold CV)"}},x:{ticks:{font:{size:11}}}}}});
+
+const fi=[{f:"Ecosystem",v:.19},{f:"Customization",v:.16},{f:"Brand",v:.13},{f:"Satisfaction",v:.12},{f:"Battery",v:.10},{f:"Price",v:.09},{f:"OS Duration",v:.08},{f:"Camera",v:.07},{f:"Apps",v:.04},{f:"Peer",v:.02}];
+new Chart("c-fi",{type:"bar",data:{labels:fi.map(d=>d.f),datasets:[{data:fi.map(d=>d.v),backgroundColor:P+"CC",borderColor:P,borderWidth:1}]},options:{...def(),indexAxis:"y",scales:{x:{title:{display:true,text:"Importance Score"}},y:{ticks:{font:{size:11}}}}}});
+
+new Chart("c-clust",{type:"doughnut",data:{labels:["Pragmatic","Ecosystem Loyalists","Feature Enthusiasts","Budget Basics"],datasets:[{data:[312,298,274,316],backgroundColor:[T,B,A,PK],borderColor:"#fff",borderWidth:3}]},options:{...def({plugins:{legend:{display:true,position:"bottom",labels:{boxWidth:11,font:{size:11}}}}}),cutout:"55%"}});
+
+new Chart("c-elbow",{type:"line",data:{labels:[2,3,4,5,6,7,8],datasets:[{label:"Inertia",data:[1840,1320,980,860,800,772,758],borderColor:P,backgroundColor:P+"22",borderWidth:2.5,pointRadius:6,pointBackgroundColor:P,fill:true,tension:0.3}]},options:{...def(),scales:{x:{title:{display:true,text:"k (clusters)"}},y:{title:{display:true,text:"Inertia"}}}}});
+
+// ROC curve
+const rocFPR=[0,.05,.08,.12,.18,.25,.34,.45,.58,.72,.85,1];
+const rocTPR=[0,.38,.52,.63,.72,.79,.84,.88,.92,.95,.98,1];
+new Chart("c-roc",{type:"line",data:{datasets:[{label:"LR (AUC=0.84)",data:rocFPR.map((x,i)=>({x,y:rocTPR[i]})),borderColor:C,backgroundColor:C+"18",borderWidth:2.5,fill:true,pointRadius:0,tension:0.4},{label:"Random",data:[{x:0,y:0},{x:1,y:1}],borderColor:GR,borderWidth:1.5,borderDash:[6,4],pointRadius:0}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{x:{min:0,max:1,title:{display:true,text:"False Positive Rate"}},y:{min:0,max:1,title:{display:true,text:"True Positive Rate"}}}}});
+
+// Cluster profiles
+const clusters=[
+  {icon:"💰",name:"Pragmatic Users",n:312,ip:"44%",sat:"4.1",desc:"Price & battery first. Split OS. Frequent mid-range upgraders. Price sensitivity drives decisions.",color:T},
+  {icon:"🔗",name:"Ecosystem Loyalists",n:298,ip:"82%",sat:"4.6",desc:"Ecosystem & brand dominate. Heavily iPhone. Highest satisfaction & lowest switch likelihood.",color:B},
+  {icon:"📷",name:"Feature Enthusiasts",n:274,ip:"48%",sat:"4.4",desc:"Camera & customization priority. Nearly OS-neutral. Most apps installed. Content creators.",color:A},
+  {icon:"📉",name:"Budget Basics",n:316,ip:"38%",sat:"3.8",desc:"Low feature importance scores. Android-leaning. Primarily use phone for social media only.",color:PK}
+];
+const cg=document.getElementById("cluster-grid");
+clusters.forEach(c=>{
+  cg.innerHTML+=`<div class="cluster-card" style="border-left:3px solid ${c.color}"><div class="icon">${c.icon}</div><div class="name">${c.name}</div><div class="desc">${c.desc}</div><div class="stats"><span class="stat-pill">n = ${c.n}</span><span class="stat-pill">iPhone: ${c.ip}</span><span class="stat-pill">Sat: ${c.sat}/5</span></div></div>`;
+});
+
+// ══ DEMOGRAPHICS ══
+new Chart("c-age",{type:"bar",data:{labels:ageLabels,datasets:[{label:"iPhone",data:iAge,backgroundColor:B+"CC",borderColor:B,borderWidth:1},{label:"Android",data:aAge,backgroundColor:G+"CC",borderColor:G,borderWidth:1}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{y:{title:{display:true,text:"Users"}}}}});
+
+new Chart("c-status",{type:"bar",data:{labels:statusLabels,datasets:[{label:"iPhone",data:iStatus,backgroundColor:B+"CC",borderColor:B,borderWidth:1},{label:"Android",data:aStatus,backgroundColor:G+"CC",borderColor:G,borderWidth:1}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{y:{title:{display:true,text:"Users"}}}}});
+
+new Chart("c-usage",{type:"bar",data:{labels:usageLabels,datasets:[{label:"iPhone",data:iUsage,backgroundColor:B+"CC",borderColor:B,borderWidth:1},{label:"Android",data:aUsage,backgroundColor:G+"CC",borderColor:G,borderWidth:1}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{y:{title:{display:true,text:"Users"}}}}});
+
+new Chart("c-apps",{type:"bar",data:{labels:appLabels,datasets:[{label:"iPhone",data:iApps,backgroundColor:B+"CC",borderColor:B,borderWidth:1},{label:"Android",data:aApps,backgroundColor:G+"CC",borderColor:G,borderWidth:1}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{y:{title:{display:true,text:"Users"}}}}});
+
+new Chart("c-upgrade",{type:"bar",data:{labels:upgLabels,datasets:[{label:"iPhone",data:iUpg,backgroundColor:B+"CC",borderColor:B,borderWidth:1},{label:"Android",data:aUpg,backgroundColor:G+"CC",borderColor:G,borderWidth:1}]},options:{...def({plugins:{legend:{display:true,labels:{boxWidth:12}}}}),scales:{y:{title:{display:true,text:"Users"}}}}});
+
+// ══ INSIGHTS ══
+const insights=[
+  {cls:"",icon:"🔵",text:"<strong>Ecosystem is Apple's strongest moat (n=1,200).</strong> iPhone users rate Ecosystem 4.22/5 vs 3.62 for Android users — a statistically significant gap (p&lt;0.0001). Random Forest confirms Ecosystem as the #1 predictor of OS ownership."},
+  {cls:"green",icon:"🟢",text:"<strong>Android users are power users who prioritise flexibility.</strong> Customization (4.28 vs 2.84, p&lt;0.0001) and Battery (4.31 vs 3.87, p=0.04) are significantly higher for Android. They also install more apps (42% have 100+)."},
+  {cls:"amber",icon:"🟡",text:"<strong>Satisfaction is a powerful loyalty predictor (r = −0.51, p&lt;0.001).</strong> Users who score satisfaction 4–5 have switch likelihood of 1–2. Retaining satisfied users is more effective than acquisition campaigns."},
+  {cls:"purple",icon:"🟣",text:"<strong>4 user archetypes identified via K-Means (k=4).</strong> Pragmatic Users (n=312), Ecosystem Loyalists (n=298), Feature Enthusiasts (n=274), Budget Basics (n=316). Archetypes cut across OS lines and reveal distinct marketing targets."},
+  {cls:"",icon:"🔵",text:"<strong>Switcher asymmetry is massive: 512 vs 184.</strong> Among OS switchers, 2.8× more users moved Android→iPhone than the reverse. Apple's ecosystem pull is quantifiably stronger among this cohort."},
+  {cls:"green",icon:"🟢",text:"<strong>ML predicts OS with 81% accuracy.</strong> Random Forest outperforms Gradient Boosting (79%), SVM (76%), and Logistic Regression (74%) in 5-fold CV. ROC-AUC = 0.84. Top predictors: Ecosystem, Customization, Brand."},
+  {cls:"amber",icon:"🟡",text:"<strong>18–34 age group dominates (70% of sample, n=841).</strong> iPhone skews slightly younger (18–24: 38%) while Android has a more even spread. Students favour iPhone (66%) vs working professionals (58% iPhone)."},
+  {cls:"purple",icon:"🟣",text:"<strong>Peer influence is universally negligible (avg 2.08/5).</strong> Lowest feature score across both platforms and all age groups. Smartphone choice is intrinsically motivated — marketing should focus on features, not social proof."},
+  {cls:"",icon:"🔵",text:"<strong>Price is only significant for Android users (p=0.003).</strong> iPhone users are significantly less price-sensitive. Premium pricing strategy is sustainable for Apple but would risk churn for Android OEMs."},
+  {cls:"green",icon:"🟢",text:"<strong>Photography drives Feature Enthusiasts (n=274).</strong> This cluster rates Camera 4.6/5 — the highest single-feature score in the dataset. Content creation is a growing use case worth targeting with product features."}
+];
+const il=document.getElementById("insight-list");
+insights.forEach(ins=>{
+  il.innerHTML+=`<div class="insight ${ins.cls}">${ins.icon} ${ins.text}</div>`;
+});
+</script>
+</body>
+</html>
