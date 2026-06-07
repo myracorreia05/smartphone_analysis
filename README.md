@@ -1,6 +1,6 @@
 # smartphone_analysis
 
-#🔗 Live Demo → [myracorreia05.github.io/smartphone-analysis]
+#🔗 Live Demo → myracorreia05.github.io/smartphone-analysis
 
 📌 Project Overview
 This project applies a full data science pipeline to primary survey data collected from 1,200 smartphone users. It uncovers patterns in OS preference, switching behavior, feature priorities, and user psychology — culminating in an interactive single-file HTML dashboard with 6 analytical tabs, 15+ charts, and ML results.
